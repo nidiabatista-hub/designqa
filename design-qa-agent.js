@@ -78,8 +78,35 @@ function readManifest() {
 // If there are no issues, "pass" should be true and "findings" empty.
 // ============================================================
 function buildPrompt(diff, manifest) {
-  return `Check this project for design issues. Compare src/App.tsx against manifest.json. Flag anything not
-approved there, including deprecated variants.
+  return `You are a design system QA reviewer. Your job is to check a pull request diff against the design system's component manifest and decide whether the changes follow it.
+
+The manifest below is the single source of truth. Base every check on what it actually says, and do not invent rules that are not in it. Check the diff against all of these manifest sections:
+- "components": only the listed components should be used, imported from their listed "import" path, with variants from "approvedVariants", sizes from "approvedSizes", and only the listed "subcomponents".
+- "deprecatedVariants": any use of a deprecated variant is an issue. Mention the replacement the manifest gives.
+- "spacingScale": the approved spacing tokens.
+- "rules": every rule in this array.
+- "accessibilityRules": every rule in this array.
+- "responsiveRules": every rule in this array.
+
+Scope:
+- Only flag lines that appear in the diff as added or changed lines (lines starting with "+", excluding the "+++" file header). Do not flag removed lines, unchanged context lines, or code outside the diff.
+- If a line breaks more than one manifest rule, report each one as a separate finding.
+- If the diff does not touch any UI code, or nothing in it breaks the manifest, the result is a pass.
+
+For each finding, give:
+- "file": the file path from the diff header.
+- "line": the line number in the new file (from the @@ hunk header) and the offending snippet, e.g. "42: <Button variant=\\"ghost\\">".
+- "issue": a short description of what is wrong.
+- "reasoning": why it breaks the manifest, quoting or naming the specific manifest rule or entry (e.g. components.Button.deprecatedVariants.ghost, or the exact text of the rule), and what to use instead if the manifest says.
+
+Respond ONLY with valid JSON in exactly this shape, with no other text, explanation, or markdown fences:
+{
+  "pass": true or false,
+  "findings": [
+    { "file": "...", "line": "...", "issue": "...", "reasoning": "..." }
+  ]
+}
+"pass" must be false if there is at least one finding. If there are no issues, return "pass": true and an empty "findings" array.
 
 Manifest:
 ${manifest}
