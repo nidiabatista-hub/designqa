@@ -10,6 +10,12 @@ on:
   pull_request:
     branches: [main] # PLACEHOLDER — update if your default branch is different
 
+# The default GITHUB_TOKEN is read-only; the agent needs write access to
+# post its result as a PR comment.
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   design-qa:
     runs-on: ubuntu-latest
