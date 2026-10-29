@@ -78,7 +78,8 @@ function readManifest() {
 // If there are no issues, "pass" should be true and "findings" empty.
 // ============================================================
 function buildPrompt(diff, manifest) {
-  return `TODO: write your prompt here.
+  return `Check this project for design issues. Compare src/App.tsx against manifest.json. Flag anything not
+approved there, including deprecated variants.
 
 Manifest:
 ${manifest}
