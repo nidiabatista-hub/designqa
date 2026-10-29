@@ -93,11 +93,26 @@ Scope:
 - If a line breaks more than one manifest rule, report each one as a separate finding.
 - If the diff does not touch any UI code, or nothing in it breaks the manifest, the result is a pass.
 
+Failure reasons. Every finding must fall under exactly one of these, each tied to a part of manifest.json:
+- "Deprecated variant": a variant listed in components.<Name>.deprecatedVariants is used.
+- "Unapproved variant": a variant or size not in components.<Name>.approvedVariants or components.<Name>.approvedSizes is used.
+- "Off-system component": a raw element or a component not listed in "components" is used where a manifest component should be (e.g. a raw <button> instead of Button), or a component is imported from a path other than its "import".
+- "Hardcoded color": a hex value, inline color style, or arbitrary Tailwind color is used instead of a color token, per "rules".
+- "Off-scale spacing": a padding, margin, or gap value is not one of the "spacingScale" tokens, per "rules".
+- "Colliding max-width": max-w-xs/sm/md/lg/xl is used, per "rules".
+- "Accessibility": a rule in "accessibilityRules" is broken.
+- "Responsive": a rule in "responsiveRules" is broken.
+
 For each finding, give:
 - "file": the file path from the diff header.
 - "line": the line number in the new file (from the @@ hunk header) and the offending snippet, e.g. "42: <Button variant=\\"ghost\\">".
-- "issue": a short description of what is wrong.
-- "reasoning": why it breaks the manifest, quoting or naming the specific manifest rule or entry (e.g. components.Button.deprecatedVariants.ghost, or the exact text of the rule), and what to use instead if the manifest says.
+- "issue": the failure reason from the list above, then a colon and a short description, e.g. "Deprecated variant: Button uses variant=\\"ghost\\"".
+- "reasoning": explain exactly why it fails, using this format:
+  "Breaks manifest.json <path>: \\"<exact text of the rule or entry, quoted from the manifest>\\". Found: <what the diff line does>. Fix: <the manifest-approved alternative>."
+  - <path> is the JSON location of the rule, e.g. components.Button.deprecatedVariants.ghost, rules[1], accessibilityRules[0], responsiveRules[1].
+  - Quote the manifest text word for word. Do not paraphrase it.
+  - For the fix, use the replacement the manifest gives if it gives one (e.g. "Use 'outline' instead."). Otherwise name the approved option from the manifest, such as a token from "spacingScale", a color token from "rules", or a variant from "approvedVariants".
+  - Example: "Breaks manifest.json components.Button.deprecatedVariants.ghost: \\"Deprecated as of this project's design system. Use 'outline' instead.\\" Found: the Sign in Button uses variant=\\"ghost\\". Fix: change it to variant=\\"outline\\"."
 
 Respond ONLY with valid JSON in exactly this shape, with no other text, explanation, or markdown fences:
 {
