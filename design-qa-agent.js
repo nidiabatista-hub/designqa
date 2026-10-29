@@ -122,6 +122,7 @@ Respond ONLY with valid JSON in exactly this shape, with no other text, explanat
   ]
 }
 "pass" must be false if there is at least one finding. If there are no issues, return "pass": true and an empty "findings" array.
+Your entire reply must be that single JSON object: start with { and end with }. Do not explain your decision before or after it, even when the result is a pass or the diff contains no UI code.
 
 Manifest:
 ${manifest}
@@ -169,8 +170,7 @@ async function checkDesignCompliance(diff, manifest) {
   const text = data.content?.[0]?.text ?? "";
 
   try {
-    const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
-    const result = JSON.parse(cleaned);
+    const result = JSON.parse(extractJson(text));
     return {
       pass: result.pass === true,
       findings: Array.isArray(result.findings) ? result.findings : [],
@@ -182,6 +182,29 @@ async function checkDesignCompliance(diff, manifest) {
       findings: [{ file: "-", line: "-", issue: "Agent response could not be parsed", reasoning: text.slice(0, 300) }],
     };
   }
+}
+
+// Pull the first complete JSON object out of Claude's reply, ignoring any
+// markdown fences or explanation text around it.
+function extractJson(text) {
+  const start = text.indexOf("{");
+  if (start === -1) return text;
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === "\\") i++;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') {
+      inString = true;
+    } else if (ch === "{") {
+      depth++;
+    } else if (ch === "}" && --depth === 0) {
+      return text.slice(start, i + 1);
+    }
+  }
+  return text;
 }
 
 
